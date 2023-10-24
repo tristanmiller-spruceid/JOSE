@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
     "jose-b64",
+    "jose-claims",
     "jose-jwa",
     "jose-jwe",
     "jose-jwk",

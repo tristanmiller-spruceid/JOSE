@@ -93,10 +93,8 @@ pub enum Signing {
     Rs512,
 
     /// No digital signature or MAC performed (Optional)
-    ///
-    /// This variant is renamed as `Null` to avoid colliding with `Option::None`.
     #[serde(rename = "none")]
-    Null,
+    None,
 }
 
 impl fmt::Display for Signing {
@@ -120,7 +118,7 @@ mod tests {
 
         let input = vec![
             EdDsa, Es256, Es256K, Es384, Es512, Hs256, Hs384, Hs512, Ps256, Ps384, Ps512, Rs256,
-            Rs384, Rs512, Null,
+            Rs384, Rs512, None,
         ];
         let ser = serde_json::to_string(&input).expect("serialization failed");
 

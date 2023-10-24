@@ -3,22 +3,32 @@
 
 //! JWS Cryptographic Implementation
 
-mod core;
+pub mod ecdsa;
+pub mod hmac;
+pub mod none;
 
-use alloc::{vec, vec::Vec};
+use alloc::vec::Vec;
 
 use jose_b64::stream::Update;
-use rand_core::RngCore;
 
-use crate::{Flattened, General, Jws, Protected, Signature, Unprotected};
+pub struct Signature;
+pub struct Protected;
+pub struct Unprotected;
 
 /// Signature creation state
-pub trait Signer: Update {
+pub trait Signer: Update + Sized {
     #[allow(missing_docs)]
     type FinishError: From<Self::Error>;
 
     /// Finish processing payload and create the signature.
-    fn finish(self, rng: impl 'static + RngCore) -> Result<Signature, Self::FinishError>;
+    fn finish(self) -> Result<Vec<u8>, Self::FinishError>;
+
+    fn sign(self, header_b64: &str, payload: &str) -> Result<Vec<u8>, Self::FinishError> {
+        self.chain(header_b64.as_bytes())?
+            .chain(b".")?
+            .chain(payload.as_bytes())?
+            .finish()
+    }
 }
 
 /// A signature creation key
@@ -30,20 +40,23 @@ pub trait SigningKey<'a> {
     type Signer: Signer;
 
     /// Begin the signature creation process.
-    fn sign(
-        &'a self,
-        prot: Option<Protected>,
-        head: Option<Unprotected>,
-    ) -> Result<Self::Signer, Self::StartError>;
+    fn signer(&'a self) -> Result<Self::Signer, Self::StartError>;
 }
 
 /// Signature verification state
-pub trait Verifier<'a>: Update {
+pub trait Verifier<'a>: Update + Sized {
     #[allow(missing_docs)]
     type FinishError: From<Self::Error>;
 
     /// Finish processing payload and verify the signature.
     fn finish(self) -> Result<(), Self::FinishError>;
+
+    fn verify(self, raw_protected: &[u8], raw_payload: &[u8]) -> Result<(), Self::FinishError> {
+        self.chain(raw_protected)?
+        .chain(b".")?
+        .chain(raw_payload)?
+        .finish()
+    }
 }
 
 impl<'a, T: Verifier<'a>> Verifier<'a> for Vec<T>
@@ -67,7 +80,7 @@ where
 }
 
 /// A signature verification key
-pub trait VerifyingKey<'a, T> {
+pub trait VerifyingKey<'a> {
     #[allow(missing_docs)]
     type StartError: From<<Self::Verifier as Update>::Error>;
 
@@ -75,73 +88,5 @@ pub trait VerifyingKey<'a, T> {
     type Verifier: Verifier<'a>;
 
     /// Begin the signature verification process.
-    fn verify(&'a self, val: T) -> Result<Self::Verifier, Self::StartError>;
-}
-
-impl<'a, A, T, V> VerifyingKey<'a, A> for [T]
-where
-    T: VerifyingKey<'a, A, Verifier = Vec<V>>,
-    V::FinishError: Default,
-    V: Verifier<'a>,
-    V: Update,
-    A: Copy,
-{
-    type StartError = T::StartError;
-    type Verifier = Vec<V>;
-
-    fn verify(&'a self, val: A) -> Result<Self::Verifier, Self::StartError> {
-        let mut all = Vec::new();
-
-        for key in self {
-            all.extend(key.verify(val)?);
-        }
-
-        Ok(all)
-    }
-}
-
-impl<'a, T: VerifyingKey<'a, &'a Signature>> VerifyingKey<'a, &'a Flattened> for T
-where
-    <T::Verifier as Verifier<'a>>::FinishError: Default,
-{
-    type StartError = T::StartError;
-    type Verifier = Vec<T::Verifier>;
-
-    fn verify(&'a self, flattened: &'a Flattened) -> Result<Self::Verifier, Self::StartError> {
-        Ok(vec![self.verify(&flattened.signature)?])
-    }
-}
-
-impl<'a, T: VerifyingKey<'a, &'a Signature>> VerifyingKey<'a, &'a General> for T
-where
-    <T::Verifier as Verifier<'a>>::FinishError: Default,
-{
-    type StartError = T::StartError;
-    type Verifier = Vec<T::Verifier>;
-
-    fn verify(&'a self, general: &'a General) -> Result<Self::Verifier, Self::StartError> {
-        general
-            .signatures
-            .iter()
-            .map(|sig| self.verify(sig))
-            .collect()
-    }
-}
-
-impl<'a, T, V, E> VerifyingKey<'a, &'a Jws> for T
-where
-    T: VerifyingKey<'a, &'a Flattened, Verifier = V, StartError = E>,
-    T: VerifyingKey<'a, &'a General, Verifier = V, StartError = E>,
-    E: From<V::Error>,
-    V: Verifier<'a>,
-{
-    type StartError = E;
-    type Verifier = V;
-
-    fn verify(&'a self, jws: &'a Jws) -> Result<Self::Verifier, Self::StartError> {
-        match jws {
-            Jws::General(general) => self.verify(general),
-            Jws::Flattened(flattened) => self.verify(flattened),
-        }
-    }
+    fn verifier(&'a self, signature: &'a [u8]) -> Result<Self::Verifier, Self::StartError>;
 }

@@ -40,7 +40,7 @@ impl From<&PublicKey> for Ec {
             crv: EcCurves::P384,
             x: ep.x().expect("unreachable").to_vec().into(),
             y: ep.y().expect("unreachable").to_vec().into(),
-            d: None,
+            d: Option::None,
         }
     }
 }

@@ -66,7 +66,7 @@ impl From<&RsaPublicKey> for Rsa {
         Self {
             n: pk.n().to_bytes_be().into(),
             e: pk.e().to_bytes_be().into(),
-            prv: None,
+            prv: Option::None,
         }
     }
 }
@@ -103,7 +103,7 @@ impl From<&RsaPrivateKey> for Rsa {
             e: pk.e().to_bytes_be().into(),
             prv: Some(RsaPrivate {
                 d: pk.d().to_bytes_be().into(),
-                opt: None,
+                opt: Option::None,
             }),
         }
     }

@@ -17,12 +17,23 @@ edition = "2021"
 rust-version = "1.65"
 
 [dependencies]
+crypto-common = { version = "0.1", default-features = false }
+ecdsa = { version = "0.16" }
+p256 = { version = "0.13", features = ["ecdsa", "ecdsa-core"] }
+p384 = { version = "0.13", features = ["ecdsa", "ecdsa-core"] }
+p521 = { version = "0.13" }
 jose-b64 = { version = "0.1", default-features = false, features = ["json"], path = "../jose-b64" }
 jose-jwa = { version = "0.1", path = "../jose-jwa" }
 jose-jwk = { version = "0.1", default-features = false, path = "../jose-jwk" }
 serde = { version = "1.0.185", default-features = false, features = ["alloc", "derive"] }
 serde_json = { version = "1.0.96", default-features = false }
+digest = { version = "0.10", default-features = false }
+hmac = { version = "0.12", default-features = false }
 rand_core = { version = "0.6.4", default-features = false }
+rsa = { version = "0.9", default-features = false }
+sha2 = { version = "0.10", default-features = false }
+subtle = { version = "2.5.0", default-features = false }
+signature = { version = "2" }
 
 [package.metadata.docs.rs]
 all-features = true

@@ -3,6 +3,7 @@
 
 use alloc::vec::Vec;
 use alloc::{boxed::Box, string::String};
+use core::fmt::Debug;
 
 use jose_b64::base64ct::Base64;
 use jose_b64::serde::Bytes;
@@ -16,8 +17,8 @@ fn b64_default() -> bool {
 }
 
 #[inline]
-fn b64_serialize(value: &bool) -> bool {
-    !value
+fn b64_skip_serialize(value: &bool) -> bool {
+    *value
 }
 
 /// The JWS Protected Header
@@ -37,7 +38,7 @@ pub struct Protected {
     pub nonce: Option<Bytes>,
 
     /// RFC 7797 Section 3
-    #[serde(skip_serializing_if = "b64_serialize", default = "b64_default")]
+    #[serde(skip_serializing_if = "b64_skip_serialize", default = "b64_default")]
     pub b64: bool,
 
     /// Other values that may appear in the protected header.
@@ -99,4 +100,37 @@ pub struct Unprotected {
     /// RFC 7517 Section 4.1.10
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub cty: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub struct Header<OtherClaims = ()>
+{
+    /// RFC 7517 Section 4.1.1
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub alg: Option<Signing>,
+
+    /// RFC 7517 Section 4.1.9
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub typ: Option<String>,
+
+    /// RFC 7797 Section 3
+    #[serde(skip_serializing_if = "b64_skip_serialize", default = "b64_default")]
+    pub b64: bool,
+
+    #[serde(flatten)]
+    pub other_claims: OtherClaims,
+}
+
+impl<OtherClaims> Default for Header<OtherClaims>
+where
+    OtherClaims: Default
+{
+    fn default() -> Self {
+        Header {
+            alg: None,
+            typ: None,
+            b64: true,
+            other_claims: Default::default()
+        }
+    }
 }

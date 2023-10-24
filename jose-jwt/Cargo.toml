@@ -19,3 +19,14 @@ rust-version = "1.65"
 [package.metadata.docs.rs]
 all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
+
+[dependencies]
+jose-b64 = { version = "0.1", default-features = false, features = ["secret"], path = "../jose-b64" }
+jose-claims = { version = "0.1", default-features = false, path = "../jose-claims" }
+jose-jwa = { version = "0.1", path = "../jose-jwa" }
+jose-jwk = { version = "0.1", default-features = false, path = "../jose-jwk" }
+jose-jws = { version = "0.1", default-features = false, path = "../jose-jws" }
+serde = { version = "1.0.185", default-features = false, features = ["alloc", "derive"] }
+serde_json = { version = "1.0.96", default-features = false }
+
+[dev-dependencies]

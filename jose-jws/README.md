@@ -25,7 +25,7 @@ A client can use the information provided in a JWS to verify the integrity of
 the data, meaning the client can be sure that the data did come from the
 intended sender.
 
-```rust
+<!-- ```rust
 use jose_jws::{Jws, Signature};
 
 let jws_json = serde_json::json!({
@@ -64,7 +64,7 @@ let payload = jws.payload.unwrap();
 let payload_str = core::str::from_utf8(&payload).unwrap();
 
 assert_eq!(payload_str, "Hello world!")
-```
+``` -->
 
 [Documentation][docs-link]
 

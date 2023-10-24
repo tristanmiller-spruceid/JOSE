@@ -1,72 +1,55 @@
 // SPDX-FileCopyrightText: 2022 Profian Inc. <opensource@profian.com>
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-use core::fmt::Display;
-use core::{convert::Infallible, str::FromStr};
+// use core::fmt::Display;
+// use core::{convert::Infallible, str::FromStr};
 
+// use jose_b64::base64ct::{Base64UrlUnpadded, Encoding};
+// use jose_b64::stream::Error;
+
+// use crate::{Flattened, General, Jws, Signature};
+
+use alloc::string::String;
+use alloc::{vec::Vec, format};
 use jose_b64::base64ct::{Base64UrlUnpadded, Encoding};
-use jose_b64::stream::Error;
 
-use crate::{Flattened, General, Jws, Signature};
+use crate::Error;
 
-impl FromStr for Jws {
-    type Err = Error<serde_json::Error>;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Flattened::from_str(s)?.into())
-    }
+#[derive(Debug, PartialEq)]
+pub struct CompactComponents<'a> {
+    pub header: &'a str,
+    pub payload: &'a str,
+    pub signature: &'a str,
 }
 
-impl FromStr for General {
-    type Err = Error<serde_json::Error>;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Flattened::from_str(s)?.into())
-    }
-}
-
-impl FromStr for Flattened {
-    type Err = Error<serde_json::Error>;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+impl<'a> CompactComponents<'a> {
+    pub fn decode(s: &'a str) -> Result<Self, Error> {
         let mut iter = s.split('.');
 
-        let prot = iter.next().ok_or(Error::Length)?;
-        let payl = iter.next().ok_or(Error::Length)?;
-        let sign = iter.next().ok_or(Error::Length)?;
+        let header = iter.next().ok_or(Error::CompactWrongFormat)?;
+        let payload = iter.next().ok_or(Error::CompactWrongFormat)?;
+        let signature = iter.next().ok_or(Error::CompactWrongFormat)?;
+
         if iter.next().is_some() {
-            return Err(Error::Length);
+            return Err(Error::CompactWrongFormat);
         }
 
-        let payload = match payl {
-            "" => None,
-            _ => Some(payl.parse().map_err(|e: Error<Infallible>| e.cast())?),
-        };
-
-        Ok(Self {
-            payload,
-            signature: Signature {
-                protected: Some(prot.parse()?),
-                header: None,
-                signature: sign.parse().map_err(|e: Error<Infallible>| e.cast())?,
-            },
-        })
+        Ok(Self { header, payload, signature })
     }
-}
 
-impl Display for Flattened {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        let mut prot = alloc::string::String::new();
-        if let Some(x) = self.signature.protected.as_ref() {
-            prot = Base64UrlUnpadded::encode_string(x.as_ref());
-        }
+    pub fn encode(&self) -> String {
+        format!("{}.{}.{}", self.header, self.payload, self.signature)
+    }
 
-        let mut payl = alloc::string::String::new();
-        if let Some(x) = self.payload.as_ref() {
-            payl = Base64UrlUnpadded::encode_string(x);
-        }
+    pub fn header_b64_decoded(&self) -> Result<Vec<u8>, jose_b64::base64ct::Error> {
+        Base64UrlUnpadded::decode_vec(self.header)
+    }
 
-        let sign = Base64UrlUnpadded::encode_string(&self.signature.signature);
-        write!(f, "{prot}.{payl}.{sign}")
+    pub fn payload_b64_decoded(&self) -> Result<Vec<u8>, jose_b64::base64ct::Error> {
+        Base64UrlUnpadded::decode_vec(self.payload)
+    }
+
+    pub fn signature_b64_decoded(&self) -> Result<Vec<u8>, jose_b64::base64ct::Error> {
+        Base64UrlUnpadded::decode_vec(self.signature)
     }
 }

@@ -1,0 +1,8 @@
+[package]
+name = "jose-claims"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+jose-jwa = { version = "0.1", path = "../jose-jwa" }
+serde = { version = "1.0.185", default-features = false, features = ["alloc", "derive"] }
